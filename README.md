@@ -50,7 +50,7 @@ Or
 node .
 ```
 
-Open your favourite browser and go to: http://<server IP>:8081/ (ex: http://localhost:8081/ or http://127.0.0.1:8081/). To change the default port (8081), change the PORT variable into 'app.js' file.
+Open your favourite browser and go to: http://ServerIP:8081/ (ex: http://localhost:8081/ or http://127.0.0.1:8081/). To change the default port (8081), change the PORT variable into 'app.js' file.
 
 License
 ----
