@@ -1,0 +1,22 @@
+{
+  "name": "manarakaWUI",
+  "version": "0.1.0",
+  "description": "System Monitor like into web page.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "nodejs",
+    "monitor",
+    "system",
+    "Web"
+  ],
+  "author": "Tsara Sandamahery",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.3",
+    "socket.io": "^2.1.1",
+    "systeminformation": "^3.42.9"
+  }
+}

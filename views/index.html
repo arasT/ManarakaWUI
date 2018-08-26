@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Manaraka Web</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/lib/bootstrap.min.css">
+
+  <!-- custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Load c3.css -->
+  <link rel="stylesheet" href="/css/lib/c3.min.css">
+
+  <script src="/js/lib/jquery.min.js"></script>
+  <script src="/js/lib/bootstrap.min.js"></script>
+  <script src="/js/lib/socket.io.js"></script>
+  <script src="/js/lib/jquery.easypiechart.min.js"></script>
+
+  <!-- Load d3.js and c3.js -->
+  <script src="/js/lib/d3.min.js"></script>
+  <script src="/js/lib/c3.min.js"></script>
+
+  <!-- custom CSS -->
+  <script src="/js/script.js"></script>
+</head>
+<body>
+
+<div class="container">
+	<div class="row">
+    <div class="col-md-12">
+
+      <!-- Nav tabs -->
+      <div class="card">
+        <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation"><a href="#Processes" aria-controls="Processes" role="tab" data-toggle="tab">Processes</a></li>
+            <li role="presentation" class="active"><a href="#ressources" aria-controls="ressources" role="tab" data-toggle="tab">Ressources</a></li>
+            <li role="presentation"><a href="#fileSystems" aria-controls="fileSystems" role="tab" data-toggle="tab">Files System</a></li>
+        </ul>
+
+        <!-- Tab panes -->
+        <!-- tab for Processes table -->
+        <div class="tab-content">
+            <div role="tabpanel" class="tab-pane" id="Processes">
+              <table id="processesListTable" class="table table-condensed">
+                <thead>
+                  <tr>
+                    <td>PID</td><td>USER</td><td>PR</td><td>NI</td><td>VIRT</td><td>RES</td><td>S</td><td>%CPU</td><td>%MEM</td><td>TIME</td><td>NAME</td>
+                  </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td colspan="11" style="text-align:center">There are no items to list...</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+
+
+            <!-- tab for Ressources graph -->
+            <div role="tabpanel" class="tab-pane active" id="ressources">
+              <div class="row">
+
+                <!-- Container for CPUs chart -->
+                <div class="col-sm-12">
+                  <p>CPU</p>
+                  <div id="cpusChart" class="line-chart-container"></div>
+                </div>
+
+                <!-- Container for Memory line chart -->
+                <div class="col-sm-12">
+                  <p>Memory</p>
+                  <div id="memoriesLineChart" class="line-chart-container"></div>
+                </div>
+
+                <!-- Container for Memory donut chart -->
+                <div class="col-sm-6 center-content" id="RAMdonutChart">
+                  <div id="RAMlabel"></div>
+                </div>
+                <div class="col-sm-6 center-content" id="SWAPdonutChart">
+                  <div id="SWAPlabel"></div>
+                </div>
+
+                <!-- Container for networks chart -->
+                <div class="col-sm-12">
+                  <p>Network</p>
+                  <div id="networksChart" class="line-chart-container"></div>
+                  <table id="networkTrafficsTable" class="table table-condensed">
+                    <thead>
+                      <tr>
+                        <td>Interfaces</td>
+                        <td>Total Down</td>
+                        <td>Total Up</td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                      <td colspan="3" style="text-align:center">There are no items to list...</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+
+            <!-- tab for Files systems table -->
+            <div role="tabpanel" class="tab-pane" id="fileSystems">
+              <table id="fileSysListTable" class="table table-condensed">
+                <thead>
+                  <tr>
+                    <td>Device</td><td>Folder</td><td>Type</td><td>Total</td><td>Free</td><td>Used</td><td>Percent</td>
+                  </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td colspan="7" style="text-align:center">There are no items to list...</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+        </div>
+      </div>
+    </div>
+	</div>
+</div>
+
+
+<script>
+  $(function() {
+
+    var socket = io();
+
+    /*** CPUs chart ***/
+    // Initialize CPUs chart
+    socket.on('initCPUData', function(initCPUDataY) {
+
+      // Generate CPUs chart
+      cpuChart = generateChart('spline', '#cpusChart', initCPUDataY, {max:90, min:0});
+    });
+
+    // Update data frequently
+    socket.on('updateCPUData', function(newCPUDataY) {
+      /*cpuChart.load({
+        bindto : '#cpusChart',
+        columns: newCPUDataY
+      });
+      console.log(newCPUDataY);
+      */
+
+      // For unknown reason, new datas are be added into the chart instead of refreshed (using the commented method above),
+      //  So we have to flush whole chart
+      cpuChart.load({unload: true});
+
+      // And generate CPUs chart again
+      cpuChart = generateChart('spline', '#cpusChart', newCPUDataY, {max:90, min:0});
+    });
+
+
+    /*** Memory chart ***/
+    // Initialize memory chart
+    socket.on('initMemoryData', function(initMemData) {
+      // Create line chart
+      memoriesChart = generateChart('spline', '#memoriesLineChart', initMemData.line, {max:90, min:0});
+
+      // Create pie chart
+			$('#RAMlabel').text(initMemData.donut.ramLabel);
+      $('#SWAPlabel').text(initMemData.donut.swapLabel);
+
+      // Try to put the same color for the line and the pie chart for RAM and SWAP
+      generatePieChart('#RAMdonutChart', '#0080BC', 50);  // C3js chart use often 00AEFF as first color
+      generatePieChart('#SWAPdonutChart', '#FFB400', 50); //    and 00AEFF as second color
+    });
+
+    // Update data frequently
+    socket.on('updateMemoryData', function(newMemData) {
+      memoriesChart.load({unload: true});   //  Flush whole chart
+
+      // Generate memories chart again
+      memoriesChart = generateChart('spline', '#memoriesLineChart', newMemData.line, {max:90, min:0});
+
+      // Update memory pie chart
+      $('#RAMdonutChart').data('easyPieChart').update(newMemData.donut.ramPercent);
+      $('#SWAPdonutChart').data('easyPieChart').update(newMemData.donut.swapPercent);
+			$('#RAMlabel').text(newMemData.donut.ramLabel);
+      $('#SWAPlabel').text(newMemData.donut.swapLabel);
+    });
+
+
+    /*** Network chart ***/
+    // Initialize network chart
+    socket.on('initNetData', function(initNetData) {
+      networksChart = generateChart('spline', '#networksChart', initNetData.line, false);
+    });
+
+    // Update data frequently
+    socket.on('updateNetData', function(newNetData) {
+      networksChart = generateChart('spline', '#networksChart', newNetData.line, false);
+      loadTable('networkTrafficsTable', ['field1', 'field2', 'field3'], newNetData.totalPerIface);
+    });
+
+
+    /*** Processes list table ***/
+    socket.on('updateProcData', function(procData) {
+      loadTable('processesListTable', ['field1','field2','field3','field4','field5','field6','field7','field8','field9','field10','field11'], procData);
+    });
+
+    /*** Files System list table ***/
+    socket.on('updateFileSysData', function(fileSysData) {
+      loadTableWithBar('fileSysListTable', ['field1','field2','field3','field4','field5','field6','field7'], fileSysData);
+    });
+
+
+  });
+</script>
+
+</body>
+</html>
